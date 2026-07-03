@@ -1,0 +1,2782 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Умный Дневник</title>
+</head>
+
+<body>
+    <div class="main-content">
+        <header>
+            <div class="header-left">
+                <div class="header-title" id="headerTitle">Дневник</div>
+                <div class="header-search">
+                    <input type="text" id="globalSearch" placeholder="Поиск" oninput="handleSearch(this.value)">
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="header-stats" id="headerStats">
+                    <span>Всего: <span class="stat-number" id="totalCount">0</span></span>
+                    <span>Активных: <span class="stat-number" id="activeCount">0</span></span>
+                </div>
+                <div class="header-actions">
+                    <button class="style-change-btn" id="colorThemeBtn">Поменять стиль</button>
+                    <div class="color-picker-dropdown" id="colorPickerDropdown">
+                        <div class="dropdown-title">Выберите основной цвет</div>
+                        <div class="color-options" id="colorOptions">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="menu">
+            <div class="leftm" id="categoryMenu">
+                <div class="menu-item active" data-view="tasks" onclick="switchView('tasks')">
+                    <span class="menu-label">Все задачи</span>
+                    <span class="menu-badge" id="allTasksBadge">0</span>
+                </div>
+                <div class="menu-item" data-view="diary" onclick="switchView('diary')">
+                    <span class="menu-label">Дневник</span>
+                    <span class="menu-badge" id="diaryBadge">0</span>
+                </div>
+                <div class="menu-item" data-view="dashboard" onclick="switchView('dashboard')">
+                    <span class="menu-label">Статистика</span>
+                </div>
+
+                <div class="menu-divider"></div>
+                <div class="menu-section">Категории</div>
+                <div class="category-list" id="categoryList"></div>
+                <button class="add-category-btn" onclick="openCategoryModal()">+ Новая категория</button>
+            </div>
+
+            <div class="rightm" id="rightPanel">
+                <div class="panel-scroll" id="panelScroll">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-left">
+            <div class="brand">Дневник</div>
+            <div>Личный менеджер задач и заметок</div>
+        </div>
+        <div class="footer-right">
+            <span class="link">vk.com</span>
+            <span class="link">t.me</span>
+        </div>
+    </footer>
+
+
+    <div id="taskModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('taskModal')">&times;</button>
+            <h2 id="taskModalTitle">Новая задача</h2>
+            <form id="taskForm" class="modal-form" onsubmit="saveTask(event)">
+                <input type="hidden" id="taskId">
+                <label>Название *</label>
+                <input type="text" id="taskTitleInput" required placeholder="Введите название задачи">
+
+                <label>Описание</label>
+                <textarea id="taskDescInput" placeholder="Подробное описание"></textarea>
+
+                <div class="form-row">
+                    <div>
+                        <label>Категория</label>
+                        <select id="taskCategorySelect"></select>
+                    </div>
+                    <div>
+                        <label>Срок</label>
+                        <input type="datetime-local" id="taskDueInput">
+                    </div>
+                </div>
+
+                <label>Приоритет</label>
+                <div class="priority-select">
+                    <label>
+                        <input type="radio" name="taskPriority" value="high" checked>
+                        <span class="priority-dot high"></span> Высокий
+                    </label>
+                    <label>
+                        <input type="radio" name="taskPriority" value="medium">
+                        <span class="priority-dot medium"></span> Средний
+                    </label>
+                    <label>
+                        <input type="radio" name="taskPriority" value="low">
+                        <span class="priority-dot low"></span> Низкий
+                    </label>
+                </div>
+
+                <label>Теги</label>
+                <div class="tag-select-wrapper" id="tagSelectWrapper">
+                    <div class="tag-input-row">
+                        <input type="text" id="tagInput" placeholder="Введите или выберите тег" oninput="checkTagDuplicate(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();addTagFromInput();}">
+                        <button type="button" onclick="addTagFromInput()">+ Добавить</button>
+                    </div>
+                    <div class="tag-duplicate-warning" id="tagDuplicateWarning">&#9888; Такой тег уже существует</div>
+                    <div class="existing-tags-list" id="existingTagsList">
+                        <span class="empty-tags-msg">Нет существующих тегов</span>
+                    </div>
+                </div>
+                <div class="selected-tags" id="selectedTags"></div>
+
+                <div class="buttons">
+                    <button type="button" class="btn-cancel" onclick="closeModal('taskModal')">Отмена</button>
+                    <button type="submit" class="btn-save">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="entryModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('entryModal')">&times;</button>
+            <h2 id="entryModalTitle">Новая запись</h2>
+            <form id="entryForm" class="modal-form" onsubmit="saveEntry(event)">
+                <input type="hidden" id="entryId">
+                <label>Заголовок *</label>
+                <input type="text" id="entryTitleInput" required placeholder="Краткий заголовок">
+
+                <label>Текст</label>
+                <textarea id="entryTextInput" rows="4" placeholder="Ваши мысли..."></textarea>
+
+                <div class="form-row">
+                    <div>
+                        <label>Категория</label>
+                        <select id="entryCategorySelect"></select>
+                    </div>
+                    <div>
+                        <label>Приоритет</label>
+                        <div class="priority-select" style="margin-bottom:0;">
+                            <label>
+                                <input type="radio" name="entryPriority" value="high">
+                                <span class="priority-dot high"></span> Выс.
+                            </label>
+                            <label>
+                                <input type="radio" name="entryPriority" value="medium" checked>
+                                <span class="priority-dot medium"></span> Сред.
+                            </label>
+                            <label>
+                                <input type="radio" name="entryPriority" value="low">
+                                <span class="priority-dot low"></span> Низ.
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <label>Теги</label>
+                <div class="tag-select-wrapper" id="entryTagSelectWrapper">
+                    <div class="tag-input-row">
+                        <input type="text" id="entryTagInput" placeholder="Введите или выберите тег" oninput="checkEntryTagDuplicate(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();addEntryTagFromInput();}">
+                        <button type="button" onclick="addEntryTagFromInput()">+ Добавить</button>
+                    </div>
+                    <div class="tag-duplicate-warning" id="entryTagDuplicateWarning">&#9888; Такой тег уже существует</div>
+                    <div class="existing-tags-list" id="entryExistingTagsList">
+                        <span class="empty-tags-msg">Нет существующих тегов</span>
+                    </div>
+                </div>
+                <div class="selected-tags" id="selectedEntryTags"></div>
+
+                <div class="buttons">
+                    <button type="button" class="btn-cancel" onclick="closeModal('entryModal')">Отмена</button>
+                    <button type="submit" class="btn-save">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="categoryModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('categoryModal')">&times;</button>
+            <h2 id="categoryModalTitle">Новая категория</h2>
+            <form id="categoryForm" class="modal-form" onsubmit="saveCategory(event)">
+                <input type="hidden" id="categoryId">
+                <label>Название *</label>
+                <input type="text" id="categoryNameInput" required placeholder="Название категории">
+
+                <label>Цвет</label>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
+                    <input type="color" id="categoryColorInput" value="#4a6cf7" style="width:60px; height:40px; padding:2px; border-radius:8px; border:2px solid #e2e8f0; cursor:pointer;">
+                    <span style="display:flex;align-items:center;font-size:0.85rem;color:#4a5568;">Выберите цвет для категории</span>
+                </div>
+
+                <div class="buttons">
+                    <button type="button" class="btn-cancel" onclick="closeModal('categoryModal')">Отмена</button>
+                    <button type="submit" class="btn-save">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="fullTextModal" class="modal">
+        <div class="modal-content wide">
+            <button class="modal-close" onclick="closeModal('fullTextModal')">&times;</button>
+            <h2 id="fullTextTitle">Полный текст</h2>
+            <div id="fullTextMeta" class="full-text-meta"></div>
+            <div id="fullTextContent" class="full-text-content"></div>
+            <div class="buttons" style="justify-content:flex-end;">
+                <button class="btn-cancel" onclick="closeModal('fullTextModal')" style = "padding: 10px; border-style: none; border-radius: 5px;">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="confirm-overlay" id="confirmOverlay">
+        <div class="confirm-box">
+            <h3>Подтверждение</h3>
+            <p id="confirmMessage">Вы уверены?</p>
+            <div class="confirm-actions">
+                <button class="confirm-yes" id="confirmYes">Да</button>
+                <button class="confirm-no" id="confirmNo">Нет</button>
+            </div>
+        </div>
+    </div>
+<style>
+     * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f0f4ff 0%, #e8eeff 100%);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            gap: 15px;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 80px;
+            padding: 0 32px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            position: relative;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #4a6cf7, #6c5ce7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            cursor: pointer;
+        }
+
+        .header-search {
+            display: flex;
+            align-items: center;
+            background: #f0f4ff;
+            border-radius: 12px;
+            padding: 0 16px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .header-search:focus-within {
+            border-color: var(--primary-color, #6c5ce7);
+            background: white;
+            box-shadow: 0 4px 20px rgba(108, 92, 231, 0.15);
+        }
+
+        .header-search input {
+            border: none;
+            background: transparent;
+            padding: 10px 8px;
+            font-size: 0.95rem;
+            width: 220px;
+            outline: none;
+            color: #2d3748;
+        }
+
+        .header-search .search-icon {
+            color: #a0aec0;
+            font-size: 1.1rem;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 0.85rem;
+            color: #4a5568;
+        }
+
+        .header-stats span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #f0f4ff;
+            padding: 6px 14px;
+            border-radius: 5px;
+            font-weight: 500;
+        }
+
+        .header-stats .stat-number {
+            color: var(--primary-color, #4a6cf7);
+            font-weight: 700;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+        }
+
+        .style-change-btn {
+            padding: 10px 20px;
+            background: var(--primary-color, #4a6cf7);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.25);
+            white-space: nowrap;
+            letter-spacing: 0.3px;
+        }
+
+        .style-change-btn:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 30px rgba(108, 92, 231, 0.35);
+        }
+
+        .style-change-btn:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        .color-picker-dropdown {
+            display: none;
+            position: absolute;
+            top: 52px;
+            right: 0;
+            background: white;
+            border-radius: 16px;
+            padding: 16px 20px 20px;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
+            border: 1px solid #e2e8f0;
+            z-index: 9999;
+            min-width: 240px;
+        }
+
+        .color-picker-dropdown.active {
+            display: block;
+            animation: dropdownFade 0.2s ease;
+        }
+
+        @keyframes dropdownFade {
+            from {
+                opacity: 0;
+                transform: translateY(-8px) scale(0.96);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .color-picker-dropdown .dropdown-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .color-picker-dropdown .color-options {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+        }
+
+        .color-picker-dropdown .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            margin: 0 auto;
+        }
+
+        .color-picker-dropdown .color-option:hover {
+            transform: scale(1.15);
+        }
+
+        .color-picker-dropdown .color-option.active {
+            border-color: #2d3748;
+            box-shadow: 0 0 0 2px white, 0 0 0 4px #2d3748;
+        }
+
+        .color-picker-dropdown .color-option .check-mark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .color-picker-dropdown .color-option .check-mark.light {
+            color: #2d3748;
+        }
+
+        .color-picker-dropdown .color-option .check-mark.dark {
+            color: white;
+        }
+
+        .menu {
+            display: flex;
+            gap: 15px;
+        }
+
+        .leftm {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            display: flex;
+            flex-direction: column;
+            width: 250px;
+            min-height: 500px;
+            border-radius: 20px;
+            padding: 16px 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            flex-shrink: 0;
+            gap: 4px;
+        }
+
+        .menu-section {
+            padding: 8px 12px 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #a0aec0;
+            margin-top: 8px;
+        }
+
+        .menu-item {
+            padding: 12px 16px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #4a5568;
+            cursor: pointer;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .menu-item:hover {
+            background: rgba(108, 92, 231, 0.08);
+            transform: translateX(4px);
+        }
+
+        .menu-item.active {
+            background: rgba(108, 92, 231, 0.12);
+            color: var(--primary-color, #4a6cf7);
+            font-weight: 600;
+        }
+
+        .menu-item .menu-icon {
+            font-size: 1.2rem;
+            width: 28px;
+            text-align: center;
+        }
+
+        .menu-item .menu-badge {
+            margin-left: auto;
+            background: #edf2f7;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: #4a5568;
+        }
+
+        .menu-item .menu-badge.active-badge {
+            background: var(--primary-color, #4a6cf7);
+            color: white;
+        }
+
+        .menu-divider {
+            height: 1px;
+            background: #e2e8f0;
+            margin: 8px 12px;
+        }
+
+        .category-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-top: 4px;
+        }
+
+        .category-item {
+            padding: 8px 16px 8px 28px;
+            font-size: 0.85rem;
+            color: #4a5568;
+            cursor: pointer;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .category-item:hover {
+            background: rgba(108, 92, 231, 0.06);
+        }
+
+        .category-item.active {
+            background: rgba(0, 0, 0, 0.08);
+            color: var(--primary-color, #4a6cf7);
+            font-weight: 600;
+        }
+
+        .category-color {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .category-item .cat-count {
+            margin-left: auto;
+            font-size: 0.75rem;
+            color: #a0aec0;
+        }
+
+        .category-item .cat-delete-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: #fc5a5a;
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 0 4px;
+            transition: all 0.2s ease;
+            border-radius: 4px;
+            line-height: 1;
+            opacity: 0.5;
+        }
+
+        .category-item:hover .cat-delete-btn {
+            display: inline-block;
+        }
+
+        .category-item .cat-delete-btn:hover {
+            opacity: 1;
+            background: rgba(252, 90, 90, 0.1);
+            transform: scale(1.2);
+        }
+
+        .add-category-btn {
+            padding: 8px 16px 8px 28px;
+            font-size: 0.8rem;
+            color: var(--primary-color, #4a6cf7);
+            cursor: pointer;
+            border-radius: 8px;
+            background: transparent;
+            border: none;
+            text-align: left;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .add-category-btn:hover {
+            background: rgba(108, 92, 231, 0.08);
+        }
+
+        .rightm {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(20px);
+            padding: 28px 32px;
+            border-radius: 20px;
+            width: 100%;
+            min-width: 0;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            min-height: 500px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .rightm::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at 100% 0%, rgba(108, 92, 231, 0.03) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .rightm .panel-scroll {
+            position: relative;
+            z-index: 1;
+            max-height: calc(100vh - 280px);
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .rightm .panel-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .rightm .panel-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .rightm .panel-scroll::-webkit-scrollbar-thumb {
+            background: var(--primary-color, #4a6cf7);
+            border-radius: 10px;
+            opacity: 0.5;
+        }
+
+        .rightm .panel-scroll::-webkit-scrollbar-thumb:hover {
+            opacity: 1;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid rgba(108, 92, 231, 0.08);
+            position: relative;
+            z-index: 1;
+        }
+
+        .panel-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .panel-title h2 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #2d3748;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-title h2 .title-icon {
+            font-size: 1.3rem;
+        }
+
+        .panel-title .panel-count {
+            font-size: 0.85rem;
+            color: #a0aec0;
+            font-weight: 400;
+            background: #f0f4ff;
+            padding: 2px 14px;
+            border-radius: 5%;
+        }
+
+        .panel-controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .panel-controls .filter-group {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .panel-controls button {
+            padding: 8px 16px;
+            border: 2px solid #e2e8f0;
+            background: white;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #4a5568;
+            cursor: pointer;
+            transition: none;
+        }
+
+        .panel-controls button:hover {
+            background: #f7fafc;
+            border-color: #b2c4d8;
+        }
+
+        .panel-controls button.active {
+            background: var(--primary-color, #4a6cf7);
+            color: white;
+            border-color: var(--primary-color, #6c5ce7);
+        }
+
+        .btn-primary {
+            padding: 10px 24px;
+            background: var(--primary-color, #4a6cf7);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-color, #4a6cf7);
+            filter: brightness(0.95);
+        }
+
+        .btn-primary:active {
+            filter: brightness(0.85);
+        }
+
+        .task-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .task-card {
+            background: white;
+            border-radius: 16px;
+            padding: 18px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border-left: 6px solid #e2e8f0;
+            position: relative;
+            gap: 16px;
+        }
+
+        .task-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(108, 92, 231, 0.02));
+            pointer-events: none;
+            border-radius: 0 16px 16px 0;
+        }
+
+        .task-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+        }
+
+        .task-card.priority-high {
+            border-left-color: #fc5a5a;
+        }
+        .task-card.priority-medium {
+            border-left-color: #f7b731;
+        }
+        .task-card.priority-low {
+            border-left-color: #5bc0de;
+        }
+
+        .task-card.completed {
+            background: #f8fafc;
+            opacity: 0.7;
+        }
+
+        .task-card.completed .task-title-text {
+            color: #a0aec0;
+            text-decoration: none;
+        }
+
+        .task-info {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .task-title {
+            font-weight: 600;
+            font-size: 1rem;
+            color: #2d3748;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .task-title .task-title-text {
+            text-decoration: none;
+        }
+
+        .task-title .task-status {
+            font-size: 0.85rem;
+        }
+
+        .task-title .task-category {
+            font-size: 0.7rem;
+            padding: 2px 10px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 500;
+        }
+
+        .task-title .task-priority-label {
+            font-size: 0.75rem;
+            color: #a0aec0;
+            font-weight: 400;
+        }
+
+        .task-meta {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            font-size: 0.8rem;
+            color: #718096;
+        }
+
+        .task-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .task-meta .meta-icon {
+            font-size: 0.9rem;
+        }
+
+        .task-tags {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            padding: 2px 12px;
+            border-radius: 5px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            background: #edf2f7;
+            color: #4a5568;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.4;
+        }
+
+        .tag:hover {
+            transform: scale(1.05);
+        }
+
+        .tag.tag-blue {
+            background: #bee3f8;
+            color: #2a69ac;
+        }
+        .tag.tag-green {
+            background: #c6f6d5;
+            color: #276749;
+        }
+        .tag.tag-orange {
+            background: #feebc8;
+            color: #9c6b1e;
+        }
+        .tag.tag-red {
+            background: #fed7d7;
+            color: #9b2c2c;
+        }
+        .tag.tag-purple {
+            background: #e9d8fd;
+            color: #6b46c1;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 4px;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .task-actions button {
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 10px;
+            background: transparent;
+            cursor: pointer;
+            font-size: 1.1rem;
+            color: #a0aec0;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .task-actions button:hover {
+            background: rgba(0, 0, 0, 0.05);
+            transform: scale(1.1);
+        }
+
+        .task-actions .btn-complete:hover {
+            color: #48bb78;
+            background: rgba(72, 187, 120, 0.1);
+        }
+
+        .task-actions .btn-edit:hover {
+            color: var(--primary-color, #4a6cf7);
+            background: rgba(74, 108, 247, 0.1);
+        }
+
+        .task-actions .btn-delete:hover {
+            color: #fc5a5a;
+            background: rgba(252, 90, 90, 0.1);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(12px);
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 36px 40px;
+            max-width: 560px;
+            width: 100%;
+            border-radius: 24px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.2);
+            position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-content.wide {
+            max-width: 720px;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 20px;
+            font-size: 28px;
+            color: #a0aec0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: none;
+            border: none;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: #2d3748;
+            transform: rotate(90deg);
+        }
+
+        .modal h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 24px;
+        }
+
+        .modal-form label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 0.85rem;
+        }
+
+        .modal-form input,
+        .modal-form textarea,
+        .modal-form select {
+            width: 100%;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            background: #f7fafc;
+            font-family: inherit;
+            color: #2d3748;
+        }
+
+        .modal-form input:focus,
+        .modal-form textarea:focus,
+        .modal-form select:focus {
+            outline: none;
+            border-color: var(--primary-color, #6c5ce7);
+            box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.1);
+            background: white;
+        }
+
+        .modal-form textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .modal-form .form-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .modal-form .form-row>* {
+            flex: 1;
+            min-width: 140px;
+        }
+
+        .tag-select-wrapper {
+            position: relative;
+            margin-bottom: 12px;
+        }
+
+        .tag-select-wrapper .tag-input-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .tag-select-wrapper .tag-input-row input {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .tag-select-wrapper .tag-input-row button {
+            padding: 12px 20px;
+            background: var(--primary-color, #4a6cf7);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .tag-select-wrapper .tag-input-row button:hover {
+            filter: brightness(0.9);
+            transform: scale(1.02);
+        }
+
+        .tag-select-wrapper .tag-duplicate-warning {
+            display: none;
+            color: #fc5a5a;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-top: 4px;
+            padding: 4px 12px;
+            background: #fff5f5;
+            border-radius: 8px;
+            border: 1px solid #fed7d7;
+        }
+
+        .tag-select-wrapper .tag-duplicate-warning.show {
+            display: block;
+            animation: warningFade 0.3s ease;
+        }
+
+        @keyframes warningFade {
+            from {
+                opacity: 0;
+                transform: translateY(-4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .tag-select-wrapper .existing-tags-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: #f7fafc;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            min-height: 38px;
+        }
+
+        .tag-select-wrapper .existing-tags-list .tag-select-item {
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: #edf2f7;
+            color: #4a5568;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.4;
+        }
+
+        .tag-select-wrapper .existing-tags-list .tag-select-item:hover {
+            background: #e2e8f0;
+            transform: scale(1.05);
+        }
+
+        .tag-select-wrapper .existing-tags-list .tag-select-item.selected {
+            background: var(--primary-color, #4a6cf7);
+            color: white;
+            border-color: var(--primary-color, #4a6cf7);
+        }
+
+        .tag-select-wrapper .existing-tags-list .empty-tags-msg {
+            color: #a0aec0;
+            font-size: 0.8rem;
+            padding: 4px 0;
+        }
+
+        .selected-tags {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin: 8px 0 16px;
+        }
+
+        .selected-tags .tag {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            background: var(--primary-color, #4a6cf7);
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            line-height: 1.4;
+        }
+
+        .selected-tags .tag .remove-tag {
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .selected-tags .tag .remove-tag:hover {
+            color: white;
+        }
+
+        .modal-form .buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 8px;
+        }
+
+        .modal-form .buttons button {
+            padding: 12px 28px;
+            border-radius: 14px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .modal-form .buttons .btn-save {
+            background: var(--primary-color, #4a6cf7);
+            color: white;
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.25);
+        }
+
+        .modal-form .buttons .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(108, 92, 231, 0.35);
+        }
+
+        .modal-form .buttons .btn-cancel {
+            background: #edf2f7;
+            color: #4a5568;
+        }
+
+        .modal-form .buttons .btn-cancel:hover {
+            background: #e2e8f0;
+        }
+
+        .priority-select {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .priority-select label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            font-size: 0.85rem;
+        }
+
+        .priority-select label:hover {
+            background: #f7fafc;
+        }
+
+        .priority-select input[type="radio"] {
+            display: none;
+        }
+
+        .priority-select input[type="radio"]:checked+span {
+            font-weight: 600;
+        }
+
+        .priority-select label:has(input[value="high"]:checked) {
+            border-color: #fc5a5a;
+            background: #fff5f5;
+        }
+
+        .priority-select label:has(input[value="medium"]:checked) {
+            border-color: #f7b731;
+            background: #fffbeb;
+        }
+
+        .priority-select label:has(input[value="low"]:checked) {
+            border-color: #5bc0de;
+            background: #f0f9ff;
+        }
+
+        .priority-select .priority-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .priority-select .priority-dot.high {
+            background: #fc5a5a;
+        }
+        .priority-select .priority-dot.medium {
+            background: #f7b731;
+        }
+        .priority-select .priority-dot.low {
+            background: #5bc0de;
+        }
+
+        .confirm-overlay {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(12px);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .confirm-overlay.active {
+            display: flex;
+        }
+
+        .confirm-box {
+            background: white;
+            padding: 36px 40px;
+            border-radius: 24px;
+            max-width: 420px;
+            width: 90%;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .confirm-box h3 {
+            font-size: 1.4rem;
+            color: #2d3748;
+            margin-bottom: 8px;
+        }
+
+        .confirm-box p {
+            color: #4a5568;
+            margin: 12px 0 24px;
+        }
+
+        .confirm-box .confirm-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .confirm-box .confirm-actions button {
+            padding: 12px 32px;
+            border-radius: 14px;
+            border: none;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .confirm-box .confirm-actions .confirm-yes {
+            background: #fc5a5a;
+            color: white;
+        }
+
+        .confirm-box .confirm-actions .confirm-yes:hover {
+            background: #e53e3e;
+            transform: scale(1.04);
+        }
+
+        .confirm-box .confirm-actions .confirm-no {
+            background: #edf2f7;
+            color: #4a5568;
+        }
+
+        .confirm-box .confirm-actions .confirm-no:hover {
+            background: #e2e8f0;
+        }
+
+        .full-text-content {
+            margin: 12px 0 20px;
+            padding: 20px 24px;
+            background: #f7fafc;
+            border-radius: 16px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.7;
+            font-size: 0.95rem;
+            color: #2d3748;
+            border: 2px solid #edf2f7;
+        }
+
+        .full-text-meta {
+            color: #a0aec0;
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: #f7fafc;
+            padding: 16px 20px;
+            border-radius: 16px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: var(--primary-color, #6c5ce7);
+            transform: translateY(-2px);
+        }
+
+        .stat-card .stat-number {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .stat-card .stat-label {
+            font-size: 0.8rem;
+            color: #a0aec0;
+            margin-top: 2px;
+        }
+
+        .stat-card.primary .stat-number {
+            color: var(--primary-color, #4a6cf7);
+        }
+        .stat-card.success .stat-number {
+            color: #48bb78;
+        }
+        .stat-card.warning .stat-number {
+            color: #f7b731;
+        }
+        .stat-card.danger .stat-number {
+            color: #fc5a5a;
+        }
+
+        .stat-category-item {
+            background: white;
+            padding: 16px 20px;
+            border-radius: 16px;
+            border-left: 6px solid;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+            flex: 1;
+            min-width: 150px;
+            transition: none;
+        }
+
+        .stat-category-item .cat-name {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .stat-category-item .cat-info {
+            font-size: 0.85rem;
+            color: #4a5568;
+        }
+
+        .stat-tag-item {
+            background: white;
+            padding: 16px 24px;
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+            cursor: pointer;
+            transition: none;
+        }
+
+        .stat-tag-item .tag-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .stat-tag-item .tag-count {
+            font-size: 0.8rem;
+            color: #718096;
+            margin-top: 4px;
+        }
+
+        footer {
+            background: linear-gradient(135deg, #1a202c, #2d3748);
+            border-radius: 20px;
+            padding: 28px 36px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #a0aec0;
+            font-size: 0.85rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .footer-left .brand {
+            font-size: 1.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-color, #4a6cf7), #6c5ce7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .footer-right {
+            display: flex;
+            gap: 20px;
+        }
+
+        .footer-right .link {
+            color: #a0aec0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            padding: 4px 8px;
+            border-radius: 8px;
+        }
+
+        .footer-right .link:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        @media (max-width: 1024px) {
+            .header-stats span {
+                font-size: 0.75rem;
+                padding: 4px 10px;
+            }
+
+            .header-search input {
+                width: 140px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .menu {
+                flex-direction: column;
+            }
+
+            .leftm {
+                width: 100%;
+                min-height: auto;
+                flex-direction: row;
+                flex-wrap: wrap;
+                padding: 12px;
+                gap: 2px;
+            }
+
+            .menu-section {
+                display: none;
+            }
+
+            .menu-item {
+                padding: 8px 14px;
+                font-size: 0.85rem;
+                flex: 0 1 auto;
+            }
+
+            .menu-item .menu-label {
+                display: none;
+            }
+
+            .menu-item .menu-icon {
+                font-size: 1.2rem;
+                width: auto;
+            }
+
+            .menu-item .menu-badge {
+                display: none;
+            }
+
+            .category-list {
+                display: none;
+            }
+
+            .add-category-btn {
+                display: none;
+            }
+
+            .menu-divider {
+                display: none;
+            }
+
+            header {
+                height: auto;
+                padding: 16px 20px;
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+
+            .header-left {
+                width: 100%;
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+
+            .header-title {
+                font-size: 1.2rem;
+            }
+
+            .header-search {
+                flex: 1;
+                min-width: 120px;
+            }
+
+            .header-search input {
+                width: 100%;
+            }
+
+            .header-stats {
+                display: none;
+            }
+
+            .rightm {
+                padding: 16px 18px;
+            }
+
+            .rightm .panel-scroll {
+                max-height: calc(100vh - 220px);
+            }
+
+            .panel-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+
+            .panel-controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .panel-controls .filter-group {
+                justify-content: center;
+            }
+
+            .task-card {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 16px 18px;
+            }
+
+            .task-actions {
+                justify-content: flex-end;
+                margin-top: 8px;
+            }
+
+            .modal-content {
+                padding: 24px 20px;
+                margin: 10px;
+            }
+
+            .modal-form .form-row {
+                flex-direction: column;
+            }
+
+            .priority-select {
+                justify-content: center;
+            }
+
+            footer {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 20px 24px;
+            }
+
+            .footer-right {
+                flex-wrap: wrap;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .color-picker-dropdown {
+                right: -20px;
+                min-width: 200px;
+            }
+
+            .color-picker-dropdown .color-options {
+                grid-template-columns: repeat(6, 1fr);
+                gap: 6px;
+            }
+
+            .color-picker-dropdown .color-option {
+                width: 28px;
+                height: 28px;
+            }
+
+            .style-change-btn {
+                font-size: 0.8rem;
+                padding: 8px 16px;
+            }
+
+            .category-item .cat-delete-btn {
+                display: inline-block !important;
+                opacity: 0.5;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+
+            .stat-card {
+                padding: 12px 14px;
+            }
+
+            .stat-card .stat-number {
+                font-size: 1.2rem;
+            }
+
+            .task-title {
+                font-size: 0.9rem;
+            }
+
+            .task-meta {
+                font-size: 0.7rem;
+                gap: 8px;
+            }
+
+            .task-actions button {
+                width: 32px;
+                height: 32px;
+                font-size: 0.9rem;
+            }
+
+            .modal h2 {
+                font-size: 1.2rem;
+            }
+
+            .header-title {
+                font-size: 1rem;
+            }
+
+            .color-picker-dropdown {
+                right: -40px;
+                min-width: 180px;
+            }
+
+            .color-picker-dropdown .color-options {
+                grid-template-columns: repeat(6, 1fr);
+                gap: 4px;
+            }
+
+            .color-picker-dropdown .color-option {
+                width: 24px;
+                height: 24px;
+            }
+
+            .style-change-btn {
+                font-size: 0.75rem;
+                padding: 6px 12px;
+            }
+        }
+</style>
+    <script>
+        function loadFromStorage(key, defaultVal) {
+            try {
+                const data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : defaultVal;
+            } catch { return defaultVal; }
+        }
+
+        function saveToStorage(key, data) {
+            localStorage.setItem(key, JSON.stringify(data));
+        }
+
+        let primaryColor = loadFromStorage('primary_color', '#4a6cf7');
+
+        let tasks = loadFromStorage('smart_tasks', []);
+        let entries = loadFromStorage('smart_entries', []);
+        let categories = loadFromStorage('smart_categories', []);
+        let tags = loadFromStorage('smart_tags', []);
+
+        let currentView = 'tasks';
+        let currentFilter = 'all';
+        let currentCategoryFilter = null;
+        let currentTagFilter = null;
+        let searchQuery = '';
+
+        let confirmResolve = null;
+
+        const presetColors = [
+            '#4a6cf7', '#6c5ce7', '#48bb78', '#f7b731',
+            '#fc5a5a', '#5bc0de', '#ed64a6', '#a29bfe',
+            '#fd79a8', '#00b894', '#e17055', '#0984e3'
+        ];
+
+        function applyColor(color) {
+            primaryColor = color;
+            document.documentElement.style.setProperty('--primary-color', color);
+            saveToStorage('primary_color', color);
+
+            const title = document.querySelector('.header-title');
+            if (title) {
+                title.style.background = `linear-gradient(135deg, ${color}, ${adjustColor(color, -20)})`;
+                title.style.webkitBackgroundClip = 'text';
+                title.style.webkitTextFillColor = 'transparent';
+                title.style.backgroundClip = 'text';
+            }
+
+            const brand = document.querySelector('.footer-left .brand');
+            if (brand) {
+                brand.style.background = `linear-gradient(135deg, ${color}, ${adjustColor(color, -20)})`;
+                brand.style.webkitBackgroundClip = 'text';
+                brand.style.webkitTextFillColor = 'transparent';
+                brand.style.backgroundClip = 'text';
+            }
+
+            const btn = document.getElementById('colorThemeBtn');
+            if (btn) {
+                btn.style.background = color;
+                btn.style.boxShadow = `0 4px 15px ${color}40`;
+            }
+
+            renderCategories();
+            renderCurrentView();
+        }
+
+        function adjustColor(hex, percent) {
+            const num = parseInt(hex.replace('#', ''), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = Math.min(255, Math.max(0, (num >> 16) + amt));
+            const G = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amt));
+            const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
+            return `#${(1 << 24 | R << 16 | G << 8 | B).toString(16).slice(1)}`;
+        }
+
+        function toggleColorPicker() {
+            const dropdown = document.getElementById('colorPickerDropdown');
+            dropdown.classList.toggle('active');
+            renderColorOptions();
+        }
+
+        function closeColorPicker() {
+            document.getElementById('colorPickerDropdown').classList.remove('active');
+        }
+
+        function renderColorOptions() {
+            const container = document.getElementById('colorOptions');
+            container.innerHTML = presetColors.map(c => {
+                const isActive = c === primaryColor;
+                const brightness = getColorBrightness(c);
+                return `
+                        <div class="color-option ${isActive ? 'active' : ''}" 
+                             style="background:${c}"
+                             onclick="selectColor('${c}')">
+                            ${isActive ? `<span class="check-mark ${brightness > 128 ? 'light' : 'dark'}">&#10003;</span>` : ''}
+                        </div>
+                    `;
+            }).join('');
+        }
+
+        function selectColor(color) {
+            applyColor(color);
+            renderColorOptions();
+            closeColorPicker();
+        }
+
+        function getColorBrightness(hex) {
+            const rgb = hex.replace('#', '').match(/.{2}/g).map(c => parseInt(c, 16));
+            return (rgb[0] * 299 + rgb[1] * 587 + rgb[2] * 114) / 1000;
+        }
+
+        document.addEventListener('click', function(e) {
+            const dropdown = document.getElementById('colorPickerDropdown');
+            const btn = document.getElementById('colorThemeBtn');
+            if (dropdown && !dropdown.contains(e.target) && !btn.contains(e.target)) {
+                dropdown.classList.remove('active');
+            }
+        });
+
+        document.getElementById('colorThemeBtn').addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleColorPicker();
+        });
+
+        function generateId() { return Date.now() + '_' + Math.random().toString(36).slice(2, 6); }
+
+        function formatDate(ts) {
+            if (!ts) return 'Нет срока';
+            const d = new Date(ts);
+            if (isNaN(d.getTime())) return 'Некорректная дата';
+            return d.toLocaleString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit',
+                minute: '2-digit' });
+        }
+
+        function getPriorityLabel(p) {
+            const map = { high: 'Высокий', medium: 'Средний', low: 'Низкий' };
+            return map[p] || p;
+        }
+
+        function getPriorityClass(p) {
+            return 'priority-' + p;
+        }
+
+        function truncateText(text, maxLen = 120) {
+            if (!text) return '';
+            if (text.length <= maxLen) return text;
+            return text.slice(0, maxLen) + '...';
+        }
+
+        function showConfirm(msg) {
+            return new Promise((resolve) => {
+                document.getElementById('confirmMessage').textContent = msg;
+                document.getElementById('confirmOverlay').classList.add('active');
+                confirmResolve = resolve;
+            });
+        }
+
+        document.getElementById('confirmYes').addEventListener('click', () => {
+            document.getElementById('confirmOverlay').classList.remove('active');
+            if (confirmResolve) confirmResolve(true);
+        });
+        document.getElementById('confirmNo').addEventListener('click', () => {
+            document.getElementById('confirmOverlay').classList.remove('active');
+            if (confirmResolve) confirmResolve(false);
+        });
+        document.getElementById('confirmOverlay').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                document.getElementById('confirmOverlay').classList.remove('active');
+                if (confirmResolve) confirmResolve(false);
+            }
+        });
+
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+            document.getElementById(id).style.display = 'flex';
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+            document.getElementById(id).style.display = 'none';
+        }
+
+        document.querySelectorAll('.modal').forEach(m => {
+            m.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                    this.style.display = 'none';
+                }
+            });
+        });
+
+        function renderCategories() {
+            const container = document.getElementById('categoryList');
+            if (!container) return;
+
+            const currentFilter = currentCategoryFilter;
+            container.innerHTML = '';
+
+            categories.forEach(cat => {
+                const count = tasks.filter(t => t.category === cat.id).length;
+                const countEntries = entries.filter(e => e.category === cat.id).length;
+                const totalCount = count + countEntries;
+
+                const div = document.createElement('div');
+                const isActive = currentFilter === cat.id;
+                div.className = 'category-item' + (isActive ? ' active' : '');
+                div.innerHTML = `
+                        <span class="category-color" style="background:${cat.color}"></span>
+                        <span>${cat.name}</span>
+                        <span class="cat-count">${totalCount}</span>
+                        <button class="cat-delete-btn" title="Удалить категорию" onclick="event.stopPropagation();deleteCategory('${cat.id}')">&#10005;</button>
+                    `;
+                div.onclick = (e) => {
+                    if (e.target.closest('.cat-delete-btn')) return;
+                    currentCategoryFilter = (currentCategoryFilter === cat.id) ? null : cat.id;
+                    currentTagFilter = null;
+                    renderCategories();
+                    renderCurrentView();
+                };
+                container.appendChild(div);
+            });
+        }
+
+        function deleteCategory(categoryId) {
+            categories = categories.filter(c => c.id !== categoryId);
+
+            tasks.forEach(t => {
+                if (t.category === categoryId) t.category = null;
+            });
+            entries.forEach(e => {
+                if (e.category === categoryId) e.category = null;
+            });
+
+            if (currentCategoryFilter === categoryId) {
+                currentCategoryFilter = null;
+            }
+
+            saveToStorage('smart_categories', categories);
+            saveToStorage('smart_tasks', tasks);
+            saveToStorage('smart_entries', entries);
+
+            renderCategories();
+            renderCurrentView();
+            updateStats();
+        }
+
+        function openCategoryModal(category) {
+            document.getElementById('categoryId').value = category ? category.id : '';
+            document.getElementById('categoryNameInput').value = category ? category.name : '';
+            document.getElementById('categoryColorInput').value = category ? category.color : primaryColor;
+            document.getElementById('categoryModalTitle').textContent = category ? 'Редактировать категорию' :
+                'Новая категория';
+            openModal('categoryModal');
+        }
+
+        function saveCategory(e) {
+            e.preventDefault();
+            const id = document.getElementById('categoryId').value;
+            const name = document.getElementById('categoryNameInput').value.trim();
+            const color = document.getElementById('categoryColorInput').value;
+
+            if (!name) { alert('Введите название'); return; }
+
+            if (id) {
+                const idx = categories.findIndex(c => c.id === id);
+                if (idx > -1) categories[idx] = { ...categories[idx], name, color };
+            } else {
+                categories.push({ id: generateId(), name, color });
+            }
+            saveToStorage('smart_categories', categories);
+            closeModal('categoryModal');
+            renderCategories();
+            renderCurrentView();
+        }
+
+        let tempTags = [];
+
+        function renderExistingTags(containerId, selectedTags, onSelect) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            const availableTags = tags.filter(t => !selectedTags.includes(t));
+
+            if (availableTags.length === 0) {
+                container.innerHTML = '<span class="empty-tags-msg">Нет доступных тегов</span>';
+                return;
+            }
+
+            container.innerHTML = availableTags.map(t =>
+                `<span class="tag-select-item" onclick="${onSelect}('${t}')">${t}</span>`
+            ).join('');
+        }
+
+        function checkTagDuplicate(value) {
+            const warning = document.getElementById('tagDuplicateWarning');
+            if (value && tempTags.includes(value.trim())) {
+                warning.classList.add('show');
+            } else {
+                warning.classList.remove('show');
+            }
+        }
+
+        function checkEntryTagDuplicate(value) {
+            const warning = document.getElementById('entryTagDuplicateWarning');
+            if (value && tempEntryTags.includes(value.trim())) {
+                warning.classList.add('show');
+            } else {
+                warning.classList.remove('show');
+            }
+        }
+
+        function addTagFromInput() {
+            const input = document.getElementById('tagInput');
+            const tag = input.value.trim();
+            if (!tag) return;
+
+            if (tempTags.includes(tag)) {
+                document.getElementById('tagDuplicateWarning').classList.add('show');
+                input.value = '';
+                setTimeout(() => {
+                    document.getElementById('tagDuplicateWarning').classList.remove('show');
+                }, 2000);
+                return;
+            }
+
+            tempTags.push(tag);
+            if (!tags.includes(tag)) {
+                tags.push(tag);
+                saveToStorage('smart_tags', tags);
+            }
+            input.value = '';
+            renderTempTags();
+            renderExistingTags('existingTagsList', tempTags, 'addExistingTag');
+            document.getElementById('tagDuplicateWarning').classList.remove('show');
+        }
+
+        function addExistingTag(tag) {
+            if (tempTags.includes(tag)) return;
+            tempTags.push(tag);
+            renderTempTags();
+            renderExistingTags('existingTagsList', tempTags, 'addExistingTag');
+        }
+
+        function removeTempTag(tag) {
+            tempTags = tempTags.filter(t => t !== tag);
+            renderTempTags();
+            renderExistingTags('existingTagsList', tempTags, 'addExistingTag');
+        }
+
+        function renderTempTags() {
+            const container = document.getElementById('selectedTags');
+            if (!container) return;
+            container.innerHTML = tempTags.map(t =>
+                `<span class="tag">${t} <span class="remove-tag" onclick="removeTempTag('${t}')">&#10005;</span></span>`
+            ).join('');
+        }
+
+        let tempEntryTags = [];
+
+        function addEntryTagFromInput() {
+            const input = document.getElementById('entryTagInput');
+            const tag = input.value.trim();
+            if (!tag) return;
+
+            if (tempEntryTags.includes(tag)) {
+                document.getElementById('entryTagDuplicateWarning').classList.add('show');
+                input.value = '';
+                setTimeout(() => {
+                    document.getElementById('entryTagDuplicateWarning').classList.remove('show');
+                }, 2000);
+                return;
+            }
+
+            tempEntryTags.push(tag);
+            if (!tags.includes(tag)) {
+                tags.push(tag);
+                saveToStorage('smart_tags', tags);
+            }
+            input.value = '';
+            renderEntryTags();
+            renderExistingTags('entryExistingTagsList', tempEntryTags, 'addExistingEntryTag');
+            document.getElementById('entryTagDuplicateWarning').classList.remove('show');
+        }
+
+        function addExistingEntryTag(tag) {
+            if (tempEntryTags.includes(tag)) return;
+            tempEntryTags.push(tag);
+            renderEntryTags();
+            renderExistingTags('entryExistingTagsList', tempEntryTags, 'addExistingEntryTag');
+        }
+
+        function removeEntryTag(tag) {
+            tempEntryTags = tempEntryTags.filter(t => t !== tag);
+            renderEntryTags();
+            renderExistingTags('entryExistingTagsList', tempEntryTags, 'addExistingEntryTag');
+        }
+
+        function renderEntryTags() {
+            const container = document.getElementById('selectedEntryTags');
+            if (!container) return;
+            container.innerHTML = tempEntryTags.map(t =>
+                `<span class="tag">${t} <span class="remove-tag" onclick="removeEntryTag('${t}')">&#10005;</span></span>`
+            ).join('');
+        }
+
+        function openTaskModal(task) {
+            const isEdit = !!task;
+            document.getElementById('taskId').value = task ? task.id : '';
+            document.getElementById('taskModalTitle').textContent = isEdit ? 'Редактировать задачу' : 'Новая задача';
+            document.getElementById('taskTitleInput').value = task ? task.title : '';
+            document.getElementById('taskDescInput').value = task ? task.description || '' : '';
+            document.getElementById('taskDueInput').value = task && task.dueDate ? new Date(task.dueDate).toISOString().slice(0,
+                16) : '';
+
+            const priority = task ? task.priority : 'high';
+            document.querySelectorAll('input[name="taskPriority"]').forEach(r => {
+                r.checked = r.value === priority;
+            });
+
+            const sel = document.getElementById('taskCategorySelect');
+            sel.innerHTML = '<option value="">Без категории</option>';
+            categories.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = c.name;
+                if (task && task.category === c.id) opt.selected = true;
+                sel.appendChild(opt);
+            });
+
+            tempTags = task ? [...(task.tags || [])] : [];
+            renderTempTags();
+            renderExistingTags('existingTagsList', tempTags, 'addExistingTag');
+
+            openModal('taskModal');
+        }
+
+        function saveTask(e) {
+            e.preventDefault();
+            const id = document.getElementById('taskId').value;
+            const title = document.getElementById('taskTitleInput').value.trim();
+            if (!title) { alert('Введите название'); return; }
+
+            const taskData = {
+                title,
+                description: document.getElementById('taskDescInput').value.trim(),
+                dueDate: document.getElementById('taskDueInput').value,
+                category: document.getElementById('taskCategorySelect').value || null,
+                priority: document.querySelector('input[name="taskPriority"]:checked').value,
+                tags: [...tempTags],
+                completed: false,
+                updatedAt: Date.now()
+            };
+
+            if (id) {
+                const idx = tasks.findIndex(t => t.id === id);
+                if (idx > -1) {
+                    tasks[idx] = { ...tasks[idx], ...taskData };
+                }
+            } else {
+                tasks.push({ id: generateId(), ...taskData, createdAt: Date.now() });
+            }
+
+            saveToStorage('smart_tasks', tasks);
+            closeModal('taskModal');
+            tempTags = [];
+            renderCurrentView();
+            updateStats();
+        }
+
+        function toggleTaskComplete(id) {
+            const task = tasks.find(t => t.id === id);
+            if (task) {
+                task.completed = !task.completed;
+                saveToStorage('smart_tasks', tasks);
+                renderCurrentView();
+                updateStats();
+            }
+        }
+
+        function deleteTask(id) {
+            showConfirm('Удалить задачу?').then(confirmed => {
+                if (confirmed) {
+                    tasks = tasks.filter(t => t.id !== id);
+                    saveToStorage('smart_tasks', tasks);
+                    renderCurrentView();
+                    updateStats();
+                }
+            });
+        }
+
+        function renderTasks() {
+            let filtered = [...tasks];
+
+            if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                filtered = filtered.filter(t =>
+                    t.title.toLowerCase().includes(q) ||
+                    (t.description || '').toLowerCase().includes(q) ||
+                    (t.tags || []).some(tag => tag.toLowerCase().includes(q))
+                );
+            }
+
+            if (currentCategoryFilter) {
+                filtered = filtered.filter(t => t.category === currentCategoryFilter);
+            }
+
+            if (currentTagFilter) {
+                filtered = filtered.filter(t => (t.tags || []).includes(currentTagFilter));
+            }
+
+            if (currentFilter === 'active') {
+                filtered = filtered.filter(t => !t.completed);
+            } else if (currentFilter === 'completed') {
+                filtered = filtered.filter(t => t.completed);
+            } else if (currentFilter === 'overdue') {
+                const now = new Date();
+                now.setHours(0, 0, 0, 0);
+                filtered = filtered.filter(t => {
+                    if (!t.dueDate || t.completed) return false;
+                    const d = new Date(t.dueDate);
+                    d.setHours(0, 0, 0, 0);
+                    return d < now;
+                });
+            } else if (currentFilter === 'today') {
+                const now = new Date();
+                filtered = filtered.filter(t => {
+                    if (!t.dueDate) return false;
+                    const d = new Date(t.dueDate);
+                    return d.getDate() === now.getDate() &&
+                        d.getMonth() === now.getMonth() &&
+                        d.getFullYear() === now.getFullYear();
+                });
+            }
+
+            const priorityOrder = { high: 0, medium: 1, low: 2 };
+            filtered.sort((a, b) => {
+                if (a.completed !== b.completed) return a.completed ? 1 : -1;
+                const pa = priorityOrder[a.priority] || 0;
+                const pb = priorityOrder[b.priority] || 0;
+                if (pa !== pb) return pa - pb;
+                const da = new Date(a.dueDate || 0);
+                const db = new Date(b.dueDate || 0);
+                return da - db;
+            });
+
+            const html = `
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <h2>
+                                
+                                Задачи
+                                <span class="panel-count">${filtered.length}</span>
+                            </h2>
+                        </div>
+                        <div class="panel-controls">
+                            <div class="filter-group">
+                                <button class="${currentFilter === 'all' ? 'active' : ''}" onclick="setFilter('all')">Все</button>
+                                <button class="${currentFilter === 'active' ? 'active' : ''}" onclick="setFilter('active')">Активные</button>
+                                <button class="${currentFilter === 'completed' ? 'active' : ''}" onclick="setFilter('completed')">Выполн.</button>
+                                <button class="${currentFilter === 'today' ? 'active' : ''}" onclick="setFilter('today')">Сегодня</button>
+                                <button class="${currentFilter === 'overdue' ? 'active' : ''}" onclick="setFilter('overdue')">Просроч.</button>
+                            </div>
+                            <button class="btn-primary" onclick="openTaskModal(null)">+ Новая задача</button>
+                        </div>
+                    </div>
+                    <div class="task-grid" id="taskGrid">
+                        ${filtered.length === 0 ? '<p style="text-align:center;color:#a0aec0;padding:40px 0;">Нет задач. Создайте новую!</p>' : ''}
+                    </div>
+                `;
+
+            const scrollContainer = document.getElementById('panelScroll');
+            if (scrollContainer) {
+                scrollContainer.innerHTML = html;
+            }
+
+            const grid = document.getElementById('taskGrid');
+            if (!grid) return;
+
+            filtered.forEach(task => {
+                const card = document.createElement('div');
+                card.className =
+                    `task-card ${getPriorityClass(task.priority)} ${task.completed ? 'completed' : ''}`;
+
+                const tagsHtml = (task.tags || []).map(t =>
+                    `<span class="tag tag-blue" onclick="event.stopPropagation();filterByTag('${t}')">${t}</span>`
+                ).join('');
+
+                const category = categories.find(c => c.id === task.category);
+
+                card.innerHTML = `
+                        <div class="task-info">
+                            <div class="task-title">
+                                <span class="task-status">${task.completed ? '&#10003;' : '&#9634;'}</span>
+                                <span class="task-title-text">${task.title}:</span>
+                                ${category ? `<span class="task-category" style="background:${category.color}">${category.name}</span>` : ''}
+                                
+                            </div>
+                            <div class="task-meta">
+                                ${formatDate(task.dueDate)}</span>
+                                ${task.tags && task.tags.length ? `<span class="task-tags">${tagsHtml}</span>` : ''}
+                            </div>
+                            ${task.description ? `<div style="font-size:0.85rem;color:#718096;padding-top:4px;">${truncateText(task.description)}</div>` : ''}
+                        </div>
+                        <div class="task-actions">
+                            <button class="btn-complete" onclick="event.stopPropagation();toggleTaskComplete('${task.id}')" title="${task.completed ? 'Вернуть' : 'Выполнить'}">
+                                ${task.completed ? '&#8635;' : '&#10003;'}
+                            </button>
+                            <button class="btn-edit" onclick="event.stopPropagation();openTaskModal(tasks.find(t=>t.id==='${task.id}'))" title="Редактировать">&#9998;</button>
+                            <button class="btn-delete" onclick="event.stopPropagation();deleteTask('${task.id}')" title="Удалить">&#10005;</button>
+                        </div>
+                    `;
+
+                card.addEventListener('click', () => {
+                    if (task.description && task.description.length > 120) {
+                        document.getElementById('fullTextTitle').textContent = task.title;
+                        document.getElementById('fullTextContent').textContent = task.description;
+                        document.getElementById('fullTextMeta').textContent =
+                            `${getPriorityLabel(task.priority)} | ${formatDate(task.dueDate)}`;
+                        openModal('fullTextModal');
+                    }
+                });
+
+                grid.appendChild(card);
+            });
+
+            updateStats();
+        }
+
+        function openEntryModal(entry) {
+            const isEdit = !!entry;
+            document.getElementById('entryId').value = entry ? entry.id : '';
+            document.getElementById('entryModalTitle').textContent = isEdit ? 'Редактировать запись' : 'Новая запись';
+            document.getElementById('entryTitleInput').value = entry ? entry.title : '';
+            document.getElementById('entryTextInput').value = entry ? entry.text || '' : '';
+
+            const sel = document.getElementById('entryCategorySelect');
+            sel.innerHTML = '<option value="">Без категории</option>';
+            categories.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = c.name;
+                if (entry && entry.category === c.id) opt.selected = true;
+                sel.appendChild(opt);
+            });
+
+            const priority = entry ? entry.priority : 'medium';
+            document.querySelectorAll('input[name="entryPriority"]').forEach(r => {
+                r.checked = r.value === priority;
+            });
+
+            tempEntryTags = entry ? [...(entry.tags || [])] : [];
+            renderEntryTags();
+            renderExistingTags('entryExistingTagsList', tempEntryTags, 'addExistingEntryTag');
+
+            openModal('entryModal');
+        }
+
+        function saveEntry(e) {
+            e.preventDefault();
+            const id = document.getElementById('entryId').value;
+            const title = document.getElementById('entryTitleInput').value.trim();
+            if (!title) { alert('Введите заголовок'); return; }
+
+            const entryData = {
+                title,
+                text: document.getElementById('entryTextInput').value.trim(),
+                category: document.getElementById('entryCategorySelect').value || null,
+                priority: document.querySelector('input[name="entryPriority"]:checked').value,
+                tags: [...tempEntryTags],
+                updatedAt: Date.now()
+            };
+
+            if (id) {
+                const idx = entries.findIndex(e => e.id === id);
+                if (idx > -1) entries[idx] = { ...entries[idx], ...entryData };
+            } else {
+                entries.push({ id: generateId(), ...entryData, createdAt: Date.now() });
+            }
+
+            saveToStorage('smart_entries', entries);
+            closeModal('entryModal');
+            tempEntryTags = [];
+            renderCurrentView();
+            updateStats();
+        }
+
+        function deleteEntry(id) {
+            showConfirm('Удалить запись?').then(confirmed => {
+                if (confirmed) {
+                    entries = entries.filter(e => e.id !== id);
+                    saveToStorage('smart_entries', entries);
+                    renderCurrentView();
+                    updateStats();
+                }
+            });
+        }
+
+        function renderEntries() {
+            let filtered = [...entries];
+
+            if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                filtered = filtered.filter(e =>
+                    e.title.toLowerCase().includes(q) ||
+                    (e.text || '').toLowerCase().includes(q) ||
+                    (e.tags || []).some(t => t.toLowerCase().includes(q))
+                );
+            }
+
+            if (currentCategoryFilter) {
+                filtered = filtered.filter(e => e.category === currentCategoryFilter);
+            }
+
+            filtered.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+            const html = `
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <h2>
+                           
+                                Дневник
+                                <span class="panel-count">${filtered.length}</span>
+                            </h2>
+                        </div>
+                        <div class="panel-controls">
+                            <button class="btn-primary" onclick="openEntryModal(null)">+ Новая запись</button>
+                        </div>
+                    </div>
+                    <div class="task-grid" id="entryGrid">
+                        ${filtered.length === 0 ? '<p style="text-align:center;color:#a0aec0;padding:40px 0;">Нет записей. Создайте первую!</p>' : ''}
+                    </div>
+                `;
+
+            const scrollContainer = document.getElementById('panelScroll');
+            if (scrollContainer) {
+                scrollContainer.innerHTML = html;
+            }
+
+            const grid = document.getElementById('entryGrid');
+            if (!grid) return;
+
+            filtered.forEach(entry => {
+                const card = document.createElement('div');
+                card.className = `task-card ${getPriorityClass(entry.priority)}`;
+
+                const tagsHtml = (entry.tags || []).map(t =>
+                    `<span class="tag tag-green">${t}</span>`
+                ).join('');
+
+                const category = categories.find(c => c.id === entry.category);
+
+                card.innerHTML = `
+                        <div class="task-info">
+                            <div class="task-title">
+                                <span class="task-title-text">${entry.title}</span>
+                                ${category ? `<span class="task-category" style="background:${category.color}">${category.name}</span>` : ''}
+                                <span style="font-size:0.7rem;color:#a0aec0;font-weight:400;">${formatDate(entry.createdAt)}</span>
+                            </div>
+                            ${entry.text ? `<div style="font-size:0.9rem;color:#4a5568;">${truncateText(entry.text)}</div>` : ''}
+                            ${entry.tags && entry.tags.length ? `<div class="task-tags">${tagsHtml}</div>` : ''}
+                        </div>
+                        <div class="task-actions">
+                            <button class="btn-edit" onclick="event.stopPropagation();openEntryModal(entries.find(e=>e.id==='${entry.id}'))" title="Редактировать">&#9998;</button>
+                            <button class="btn-delete" onclick="event.stopPropagation();deleteEntry('${entry.id}')" title="Удалить">&#10005;</button>
+                        </div>
+                    `;
+
+                card.addEventListener('click', () => {
+                    if (entry.text && entry.text.length > 120) {
+                        document.getElementById('fullTextTitle').textContent = entry.title;
+                        document.getElementById('fullTextContent').textContent = entry.text;
+                        document.getElementById('fullTextMeta').textContent =
+                            `${getPriorityLabel(entry.priority)} | ${formatDate(entry.createdAt)}`;
+                        openModal('fullTextModal');
+                    }
+                });
+
+                grid.appendChild(card);
+            });
+        }
+
+        function renderDashboard() {
+            const total = tasks.length;
+            const completed = tasks.filter(t => t.completed).length;
+            const active = total - completed;
+            const overdue = tasks.filter(t => t.dueDate && !t.completed && new Date(t.dueDate) < new Date()).length;
+            const highPriority = tasks.filter(t => t.priority === 'high' && !t.completed).length;
+
+            const catStats = categories.map(cat => {
+                const count = tasks.filter(t => t.category === cat.id).length;
+                const done = tasks.filter(t => t.category === cat.id && t.completed).length;
+                return { ...cat, count, done };
+            });
+
+            const html = `
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <h2>
+                                <span class="title-icon">&#128202;</span>
+                                Статистика
+                            </h2>
+                        </div>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card primary">
+                            <div class="stat-number">${total}</div>
+                            <div class="stat-label">Всего задач</div>
+                        </div>
+                        <div class="stat-card success">
+                            <div class="stat-number">${completed}</div>
+                            <div class="stat-label">Выполнено</div>
+                        </div>
+                        <div class="stat-card warning">
+                            <div class="stat-number">${active}</div>
+                            <div class="stat-label">Активных</div>
+                        </div>
+                        <div class="stat-card danger">
+                            <div class="stat-number">${overdue}</div>
+                            <div class="stat-label">Просрочено</div>
+                        </div>
+                        <div class="stat-card primary">
+                            <div class="stat-number">${highPriority}</div>
+                            <div class="stat-label">Высокий приоритет</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${entries.length}</div>
+                            <div class="stat-label">Записей</div>
+                        </div>
+                    </div>
+                    <h3 style="margin:20px 0 12px;color:#2d3748;">По категориям</h3>
+                    <div style="display:flex;flex-wrap:wrap;gap:12px;">
+                        ${catStats.length === 0 ? '<p style="color:#a0aec0;">Нет категорий</p>' : catStats.map(cat => `
+                            <div class="stat-category-item" style="border-left-color:${cat.color};">
+                                <div class="cat-name">${cat.name}</div>
+                                <div class="cat-info">Всего: ${cat.count} | Выполнено: ${cat.done}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <h3 style="margin:20px 0 12px;color:#2d3748;">Популярные теги</h3>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                        ${tags.map(t => {
+                            const count = tasks.filter(task => (task.tags || []).includes(t)).length;
+                            return count > 0 ? `<span class="stat-tag-item" onclick="filterByTag('${t}')"><span class="tag-name">${t}</span><div class="tag-count">${count} задач</div></span>` : '';
+                        }).join('') || '<p style="color:#a0aec0;">Нет тегов</p>'}
+                    </div>
+                `;
+
+            const scrollContainer = document.getElementById('panelScroll');
+            if (scrollContainer) {
+                scrollContainer.innerHTML = html;
+            }
+        }
+
+        function switchView(view) {
+            currentView = view;
+            document.querySelectorAll('.menu-item').forEach(el => {
+                el.classList.toggle('active', el.dataset.view === view);
+            });
+            renderCurrentView();
+        }
+
+        function renderCurrentView() {
+            switch (currentView) {
+                case 'tasks':
+                    renderTasks();
+                    break;
+                case 'diary':
+                    renderEntries();
+                    break;
+                case 'dashboard':
+                    renderDashboard();
+                    break;
+                default:
+                    renderTasks();
+            }
+            updateStats();
+        }
+
+        function setFilter(filter) {
+            currentFilter = filter;
+            renderCurrentView();
+        }
+
+        function filterByTag(tag) {
+            currentTagFilter = currentTagFilter === tag ? null : tag;
+            currentCategoryFilter = null;
+            if (currentView !== 'tasks') switchView('tasks');
+            renderCurrentView();
+        }
+
+        function handleSearch(query) {
+            searchQuery = query.trim();
+            renderCurrentView();
+        }
+
+        function updateStats() {
+            const total = tasks.length;
+            const active = tasks.filter(t => !t.completed).length;
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('activeCount').textContent = active;
+            document.getElementById('allTasksBadge').textContent = total;
+            document.getElementById('diaryBadge').textContent = entries.length;
+        }
+
+        applyColor(primaryColor);
+
+        if (categories.length === 0) {
+            categories = [
+                { id: 'cat_work', name: 'Работа', color: '#4a6cf7' },
+                { id: 'cat_personal', name: 'Личное', color: '#48bb78' },
+                { id: 'cat_study', name: 'Учеба', color: '#f7b731' },
+            ];
+            saveToStorage('smart_categories', categories);
+        }
+
+        if (tasks.length === 0) {
+            tasks = [{
+                id: 't1',
+                title: 'Добавить новые функции',
+                description: 'Реализовать категориикатегориикатегории',
+                dueDate: new Date(Date.now() + 86400000 * 3).toISOString(),
+                category: 'cat_work',
+                priority: 'high',
+                tags: ['разработка', 'планирование'],
+                completed: false,
+                createdAt: Date.now() - 3600000,
+                updatedAt: Date.now()
+            }, {
+                id: 't2',
+                title: 'Купить продукты',
+                description: 'Молоко',
+                dueDate: new Date(Date.now() + 86400000).toISOString(),
+                category: 'cat_personal',
+                priority: 'medium',
+                tags: ['покупки'],
+                completed: false,
+                createdAt: Date.now() - 7200000,
+                updatedAt: Date.now()
+            }, {
+                id: 't3',
+                title: 'Подготовить презентацию',
+                description: 'Собрать материалы и сделать слайды для завтрашней встречи',
+                dueDate: new Date(Date.now() - 3600000).toISOString(),
+                category: 'cat_work',
+                priority: 'high',
+                tags: ['работа', 'презентация'],
+                completed: false,
+                createdAt: Date.now() - 86400000,
+                updatedAt: Date.now()
+            }];
+            saveToStorage('smart_tasks', tasks);
+        }
+
+        if (entries.length === 0) {
+            entries = [{
+                id: 'e1',
+                title: 'Идея для проекта',
+                text: 'Можно добавитьжно добавитьжно добавить',
+                category: 'cat_work',
+                priority: 'high',
+                tags: ['идеи', 'будущее'],
+                createdAt: Date.now() - 3600000,
+                updatedAt: Date.now()
+            }, {
+                id: 'e2',
+                title: 'План на неделю',
+                text: 'Понедельник',
+                category: 'cat_personal',
+                priority: 'medium',
+                tags: ['планирование', 'работа'],
+                createdAt: Date.now() - 86400000,
+                updatedAt: Date.now()
+            }];
+            saveToStorage('smart_entries', entries);
+        }
+
+        const allTags = new Set();
+        tasks.forEach(t => (t.tags || []).forEach(tag => allTags.add(tag)));
+        entries.forEach(e => (e.tags || []).forEach(tag => allTags.add(tag)));
+        tags = [...allTags];
+        saveToStorage('smart_tags', tags);
+
+        renderCategories();
+        renderCurrentView();
+        updateStats();
+
+    </script>
+</body>
+</html>
